@@ -114,12 +114,16 @@
             color: #888;
         }
 
-        .average-price {
+        .price-info {
             font-size: 18px;
             font-weight: bold;
             margin-top: 20px;
             text-align: center;
             color: #f57c00;
+        }
+
+        .suggested-price {
+            color: #d32f2f;
         }
     </style>
 </head>
@@ -148,19 +152,27 @@
                     const response = await fetch(`http://localhost:3000/top-products?sku=${sku}`);
                     const products = await response.json();
 
-                    // Calcular el promedio de los precios de los productos
-                    const averagePrice = calcularPromedioPrecios(products);
+                    // Calcular los precios más bajo, promedio y alto
+                    const { lowestPrice, highestPrice, averagePrice } = calcularPrecios(products);
+                    
+                    // Calcular el precio sugerido basado en el promedio
+                    const suggestedPrice = averagePrice * 0.95; // Precio sugerido un 5% menos que el promedio (para ser competitivo)
 
                     // Crear una sección para cada SKU
                     const skuSection = document.createElement('div');
                     skuSection.className = 'sku-container';
                     skuSection.innerHTML = `<h2>Productos Más Vendidos para SKU: ${sku}</h2>`;
 
-                    // Mostrar el promedio de los precios
-                    const averagePriceElement = document.createElement('p');
-                    averagePriceElement.className = 'average-price';
-                    averagePriceElement.innerText = `Promedio de Precios: $${averagePrice.toFixed(2)}`;
-                    skuSection.appendChild(averagePriceElement);
+                    // Mostrar los precios más bajo, promedio, alto y sugerido
+                    const priceInfoElement = document.createElement('p');
+                    priceInfoElement.className = 'price-info';
+                    priceInfoElement.innerHTML = `
+                        <strong>Precio Más Bajo:</strong> $${lowestPrice} | 
+                        <strong>Promedio:</strong> $${averagePrice.toFixed(2)} | 
+                        <strong>Precio Más Alto:</strong> $${highestPrice} <br>
+                        <span class="suggested-price"><strong>Precio Sugerido:</strong> $${suggestedPrice.toFixed(2)}</span>
+                    `;
+                    skuSection.appendChild(priceInfoElement);
 
                     // Crear una lista de productos dentro de esta sección
                     const productList = document.createElement('ul');
@@ -193,10 +205,14 @@
             }
         }
 
-        function calcularPromedioPrecios(products) {
-            const totalPrecio = products.reduce((sum, product) => sum + product.price, 0);
-            const promedio = totalPrecio / products.length;
-            return promedio;
+        function calcularPrecios(products) {
+            const prices = products.map(product => product.price);
+            const lowestPrice = Math.min(...prices);
+            const highestPrice = Math.max(...prices);
+            const totalPrice = prices.reduce((sum, price) => sum + price, 0);
+            const averagePrice = totalPrice / prices.length;
+
+            return { lowestPrice, highestPrice, averagePrice };
         }
     </script>
 </body>
