@@ -113,6 +113,14 @@
             font-size: 14px;
             color: #888;
         }
+
+        .average-price {
+            font-size: 18px;
+            font-weight: bold;
+            margin-top: 20px;
+            text-align: center;
+            color: #f57c00;
+        }
     </style>
 </head>
 <body>
@@ -140,10 +148,19 @@
                     const response = await fetch(`http://localhost:3000/top-products?sku=${sku}`);
                     const products = await response.json();
 
+                    // Calcular el promedio de los precios de los productos
+                    const averagePrice = calcularPromedioPrecios(products);
+
                     // Crear una sección para cada SKU
                     const skuSection = document.createElement('div');
                     skuSection.className = 'sku-container';
                     skuSection.innerHTML = `<h2>Productos Más Vendidos para SKU: ${sku}</h2>`;
+
+                    // Mostrar el promedio de los precios
+                    const averagePriceElement = document.createElement('p');
+                    averagePriceElement.className = 'average-price';
+                    averagePriceElement.innerText = `Promedio de Precios: $${averagePrice.toFixed(2)}`;
+                    skuSection.appendChild(averagePriceElement);
 
                     // Crear una lista de productos dentro de esta sección
                     const productList = document.createElement('ul');
@@ -174,6 +191,12 @@
             } catch (error) {
                 console.error('Error al obtener los productos:', error);
             }
+        }
+
+        function calcularPromedioPrecios(products) {
+            const totalPrecio = products.reduce((sum, product) => sum + product.price, 0);
+            const promedio = totalPrecio / products.length;
+            return promedio;
         }
     </script>
 </body>
