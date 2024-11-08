@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Búsqueda de Productos Más Vendidos</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+
+        .container {
+            width: 90%;
+            margin: 20px auto;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .search-bar {
+            width: 30%;
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            margin-bottom: 20px;
+        }
+
+        .search-btn {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .search-btn:hover {
+            background-color: #45a049;
+        }
+
+        .sku-container {
+            width: 45%;
+            min-width: 300px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: white;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .sku-container h2 {
+            text-align: center;
+        }
+
+        .product-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .product-item {
+            display: flex;
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #fff;
+        }
+
+        .product-item img {
+            width: 100px;
+            height: 100px;
+            margin-right: 20px;
+        }
+
+        .product-info {
+            flex: 1;
+        }
+
+        .product-info h3 {
+            margin: 0;
+            font-size: 18px;
+            color: #333;
+        }
+
+        .product-info p {
+            margin: 5px 0;
+            color: #555;
+        }
+
+        .price {
+            font-size: 20px;
+            font-weight: bold;
+            color: #2e7d32;
+        }
+
+        .link {
+            font-size: 14px;
+            color: #1e88e5;
+            text-decoration: none;
+        }
+
+        .link:hover {
+            text-decoration: underline;
+        }
+
+        .seller {
+            font-size: 14px;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <div style="text-align: center; margin-top: 20px;">
+        <input type="text" id="sku" class="search-bar" placeholder="Ingrese los SKUs separados por coma">
+        <button onclick="buscarProductos()" class="search-btn">Buscar Productos</button>
+    </div>
+
+    <div class="container" id="sku-container">
+        <!-- Aquí se añadirán los resultados por SKU -->
+    </div>
+
+    <script>
+        async function buscarProductos() {
+            const skuInput = document.getElementById('sku').value;
+            const skus = skuInput.split(',').map(s => s.trim()); // Obtener los SKUs separados por coma
+
+            // Limpiar resultados anteriores
+            const skuContainer = document.getElementById('sku-container');
+            skuContainer.innerHTML = '';
+
+            try {
+                // Realizar la búsqueda de productos para cada SKU
+                for (let sku of skus) {
+                    const response = await fetch(`http://localhost:3000/top-products?sku=${sku}`);
+                    const products = await response.json();
+
+                    // Crear una sección para cada SKU
+                    const skuSection = document.createElement('div');
+                    skuSection.className = 'sku-container';
+                    skuSection.innerHTML = `<h2>Productos Más Vendidos para SKU: ${sku}</h2>`;
+
+                    // Crear una lista de productos dentro de esta sección
+                    const productList = document.createElement('ul');
+                    productList.className = 'product-list';
+
+                    products.forEach((product, index) => {
+                        const item = document.createElement('li');
+                        item.className = 'product-item';
+                        item.innerHTML = `
+                            <img src="${product.thumbnail}" alt="${product.title}">
+                            <div class="product-info">
+                                <h3>${product.title}</h3>
+                                <p>Vendidos: ${product.soldQuantity}</p>
+                                <p class="price">$${product.price}</p>
+                                <p class="seller">Vendedor: ${product.sellerNickname}</p>
+                                <a href="${product.link}" class="link" target="_blank">Ver más</a>
+                            </div>
+                        `;
+                        productList.appendChild(item);
+                    });
+
+                    // Añadir la lista de productos a la sección del SKU
+                    skuSection.appendChild(productList);
+
+                    // Añadir la sección a la página
+                    skuContainer.appendChild(skuSection);
+                }
+            } catch (error) {
+                console.error('Error al obtener los productos:', error);
+            }
+        }
+    </script>
+</body>
+</html>
