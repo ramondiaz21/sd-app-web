@@ -130,38 +130,49 @@
 <body>
     <div style="text-align: center; margin-top: 20px;">
         <input type="text" id="sku" class="search-bar" placeholder="Ingrese los SKUs separados por coma">
+        <input type="text" id="title" class="search-bar" placeholder="Ingrese los títulos separados por coma">
         <button onclick="buscarProductos()" class="search-btn">Buscar Productos</button>
     </div>
 
     <div class="container" id="sku-container">
-        <!-- Aquí se añadirán los resultados por SKU -->
+        <!-- Aquí se añadirán los resultados por SKU o título -->
     </div>
 
     <script>
         async function buscarProductos() {
             const skuInput = document.getElementById('sku').value;
-            const skus = skuInput.split(',').map(s => s.trim()); // Obtener los SKUs separados por coma
+            const titleInput = document.getElementById('title').value;
+            const skus = skuInput.split(',').map(s => s.trim()).filter(s => s);
+            const titles = titleInput.split(',').map(t => t.trim()).filter(t => t);
 
             // Limpiar resultados anteriores
             const skuContainer = document.getElementById('sku-container');
             skuContainer.innerHTML = '';
 
             try {
-                // Realizar la búsqueda de productos para cada SKU
-                for (let sku of skus) {
-                    const response = await fetch(`http://localhost:3000/top-products?sku=${sku}`);
-                    const products = await response.json();
+                // Construir la URL de búsqueda
+                const query = new URLSearchParams();
+                if (skus.length) query.append('sku', skus.join(','));
+                if (titles.length) query.append('title', titles.join(','));
 
-                    // Calcular los precios más bajo, promedio y alto
+                const response = await fetch(`http://localhost:3000/top-products?${query.toString()}`);
+                const products = await response.json();
+
+                // Agrupar resultados por cada consulta (por SKU o por título)
+                const groupedResults = products.reduce((acc, product) => {
+                    if (!acc[product.query]) acc[product.query] = [];
+                    acc[product.query].push(product);
+                    return acc;
+                }, {});
+
+                // Iterar sobre los resultados agrupados y mostrar los productos y precios
+                for (let [query, products] of Object.entries(groupedResults)) {
                     const { lowestPrice, highestPrice, averagePrice } = calcularPrecios(products);
-                    
-                    // Calcular el precio sugerido basado en el promedio
-                    const suggestedPrice = averagePrice * 0.95; // Precio sugerido un 5% menos que el promedio (para ser competitivo)
+                    const suggestedPrice = averagePrice * 0.95;
 
-                    // Crear una sección para cada SKU
                     const skuSection = document.createElement('div');
                     skuSection.className = 'sku-container';
-                    skuSection.innerHTML = `<h2>Productos Más Vendidos para SKU: ${sku}</h2>`;
+                    skuSection.innerHTML = `<h2>Productos Más Vendidos para ${products[0].searchType === 'title' ? 'Título' : 'SKU'}: ${query}</h2>`;
 
                     // Mostrar los precios más bajo, promedio, alto y sugerido
                     const priceInfoElement = document.createElement('p');
@@ -174,11 +185,10 @@
                     `;
                     skuSection.appendChild(priceInfoElement);
 
-                    // Crear una lista de productos dentro de esta sección
                     const productList = document.createElement('ul');
                     productList.className = 'product-list';
 
-                    products.forEach((product, index) => {
+                    products.forEach(product => {
                         const item = document.createElement('li');
                         item.className = 'product-item';
                         item.innerHTML = `
@@ -194,10 +204,7 @@
                         productList.appendChild(item);
                     });
 
-                    // Añadir la lista de productos a la sección del SKU
                     skuSection.appendChild(productList);
-
-                    // Añadir la sección a la página
                     skuContainer.appendChild(skuSection);
                 }
             } catch (error) {

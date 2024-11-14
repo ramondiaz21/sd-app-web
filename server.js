@@ -11,7 +11,8 @@ app.use(cors());
 const { CLIENT_ID, CLIENT_SECRET } = process.env;
 
 app.get('/top-products', async (req, res) => {
-    const skus = req.query.sku.split(',').map(sku => sku.trim()); // Recibir varios SKUs separados por coma
+    const skus = req.query.sku ? req.query.sku.split(',').map(sku => sku.trim()) : [];
+    const titles = req.query.title ? req.query.title.split(',').map(title => title.trim()) : [];
 
     try {
         // Obtener el token de acceso
@@ -22,37 +23,41 @@ app.get('/top-products', async (req, res) => {
         });
         const accessToken = tokenResponse.data.access_token;
 
-        // Realizar la búsqueda para cada SKU
-        const productPromises = skus.map(async (sku) => {
-            const searchResponse = await axios.get(`https://api.mercadolibre.com/sites/MLM/search?q=${sku}&sort=best_selling&limit=10`, {
+        // Función de búsqueda
+        const searchProducts = async (query, isTitle) => {
+            const searchResponse = await axios.get(`https://api.mercadolibre.com/sites/MLM/search?q=${query}&sort=best_selling&limit=10`, {
                 headers: { Authorization: `Bearer ${accessToken}` }
             });
 
-            // Obtener la información del vendedor para cada producto
-            const products = await Promise.all(searchResponse.data.results.map(async (product) => {
+            return Promise.all(searchResponse.data.results.map(async (product) => {
                 const sellerResponse = await axios.get(`https://api.mercadolibre.com/users/${product.seller.id}`, {
                     headers: { Authorization: `Bearer ${accessToken}` }
                 });
 
                 return {
-                    sku,
+                    query: query,
                     title: product.title,
                     price: product.price,
                     soldQuantity: product.sold_quantity,
                     thumbnail: product.thumbnail,
                     link: product.permalink,
                     sellerNickname: sellerResponse.data.nickname,
+                    searchType: isTitle ? 'title' : 'sku'
                 };
             }));
+        };
 
-            return products;
-        });
+        // Ejecutar la búsqueda para cada SKU o título
+        const productPromises = [
+            ...skus.map(sku => searchProducts(sku, false)),
+            ...titles.map(title => searchProducts(title, true))
+        ];
 
-        // Esperar todas las búsquedas de productos
+        // Esperar todas las búsquedas
         const allProducts = await Promise.all(productPromises);
 
         // Devolver todos los productos encontrados
-        res.json(allProducts.flat()); // Aplanamos el array de productos
+        res.json(allProducts.flat());
     } catch (error) {
         console.error(error);
         res.status(500).send('Error al obtener los datos');
