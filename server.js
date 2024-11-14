@@ -55,9 +55,29 @@ app.get('/top-products', async (req, res) => {
 
         // Esperar todas las búsquedas
         const allProducts = await Promise.all(productPromises);
+        const products = allProducts.flat();
 
-        // Devolver todos los productos encontrados
-        res.json(allProducts.flat());
+        // Filtrar productos del vendedor 'sdautopartes.com'
+        const sdAutoPartsProduct = products.find(product => product.sellerNickname.toLowerCase() === 'sdautopartes.com');
+
+        let nearbyPrices = null;
+
+        if (sdAutoPartsProduct) {
+            const prices = products.map(product => product.price).sort((a, b) => a - b);
+            const index = prices.indexOf(sdAutoPartsProduct.price);
+
+            const lowerPrice = index > 0 ? prices[index - 1] : null;
+            const higherPrice = index < prices.length - 1 ? prices[index + 1] : null;
+
+            nearbyPrices = {
+                currentPrice: sdAutoPartsProduct.price,
+                lowerPrice,
+                higherPrice
+            };
+        }
+
+        // Enviar la lista de productos y precios cercanos, si existen
+        res.json({ products, nearbyPrices });
     } catch (error) {
         console.error(error);
         res.status(500).send('Error al obtener los datos');

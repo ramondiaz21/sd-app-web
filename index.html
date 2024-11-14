@@ -134,6 +134,9 @@
         <button onclick="buscarProductos()" class="search-btn">Buscar Productos</button>
     </div>
 
+    <!-- Información del vendedor 'sdautopartes.com' -->
+    <div id="sdautopartes-info" style="text-align: center; margin: 20px auto;"></div>
+
     <div class="container" id="sku-container">
         <!-- Aquí se añadirán los resultados por SKU o título -->
     </div>
@@ -156,7 +159,18 @@
                 if (titles.length) query.append('title', titles.join(','));
 
                 const response = await fetch(`http://localhost:3000/top-products?${query.toString()}`);
-                const products = await response.json();
+                const { products, nearbyPrices } = await response.json();
+
+                // Mostrar la información del vendedor 'sdautopartes.com' si existe
+                if (nearbyPrices) {
+                    const sdAutoPartsInfo = document.getElementById('sdautopartes-info');
+                    sdAutoPartsInfo.innerHTML = `
+                        <h3>Información del Vendedor: sdautopartes.com</h3>
+                        <p><strong>Precio del Vendedor:</strong> $${nearbyPrices.currentPrice}</p>
+                        <p><strong>Precio Más Cercano Abajo:</strong> $${nearbyPrices.lowerPrice || 'N/A'}</p>
+                        <p><strong>Precio Más Cercano Arriba:</strong> $${nearbyPrices.higherPrice || 'N/A'}</p>
+                    `;
+                }
 
                 // Agrupar resultados por cada consulta (por SKU o por título)
                 const groupedResults = products.reduce((acc, product) => {
@@ -223,4 +237,4 @@
         }
     </script>
 </body>
-</html>
+
